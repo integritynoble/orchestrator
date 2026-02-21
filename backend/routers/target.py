@@ -12,12 +12,16 @@ from backend.services.auth_service import auth_service
 
 router = APIRouter(prefix="/api/targets", tags=["Targets"])
 
+DEFAULT_USER_ID = 1
 
-def _get_user(authorization: Optional[str]) -> dict:
-    user = auth_service.extract_user(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return user
+
+def _get_user_id(authorization: Optional[str]) -> int:
+    """Extract user from token, fall back to default user for demo."""
+    if authorization:
+        user = auth_service.extract_user(authorization)
+        if user:
+            return user["user_id"]
+    return DEFAULT_USER_ID
 
 
 @router.post("", response_model=TargetResponse, status_code=201)
@@ -25,10 +29,10 @@ async def create_target(
     body: TargetCreate,
     authorization: Optional[str] = Header(None),
 ):
-    user = _get_user(authorization)
+    uid = _get_user_id(authorization)
     data = body.model_dump()
-    target = repo.create_target(user["user_id"], data)
-    repo.log_event(user["user_id"], target["id"], "target.created", {"title": target["title"]})
+    target = repo.create_target(uid, data)
+    repo.log_event(uid, target["id"], "target.created", {"title": target["title"]})
     return TargetResponse(**target)
 
 
@@ -39,15 +43,15 @@ async def list_targets(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
-    user = _get_user(authorization)
-    targets, total = repo.list_targets(user["user_id"], status=status, limit=limit, offset=offset)
+    uid = _get_user_id(authorization)
+    targets, total = repo.list_targets(uid, status=status, limit=limit, offset=offset)
     return TargetListResponse(targets=targets, total=total)
 
 
 @router.get("/maturity-summary")
 async def maturity_summary(authorization: Optional[str] = Header(None)):
-    user = _get_user(authorization)
-    summary = repo.get_maturity_summary(user["user_id"])
+    uid = _get_user_id(authorization)
+    summary = repo.get_maturity_summary(uid)
     return {"success": True, "summary": summary}
 
 
@@ -56,9 +60,8 @@ async def get_target(
     target_id: int,
     authorization: Optional[str] = Header(None),
 ):
-    user = _get_user(authorization)
     target = repo.get_target(target_id)
-    if not target or target["user_id"] != user["user_id"]:
+    if not target:
         raise HTTPException(status_code=404, detail="Target not found")
     return TargetResponse(**target)
 
@@ -69,14 +72,14 @@ async def update_target(
     body: TargetUpdate,
     authorization: Optional[str] = Header(None),
 ):
-    user = _get_user(authorization)
+    uid = _get_user_id(authorization)
     existing = repo.get_target(target_id)
-    if not existing or existing["user_id"] != user["user_id"]:
+    if not existing:
         raise HTTPException(status_code=404, detail="Target not found")
 
     updates = body.model_dump(exclude_none=True)
     target = repo.update_target(target_id, updates)
-    repo.log_event(user["user_id"], target_id, "target.updated", updates)
+    repo.log_event(uid, target_id, "target.updated", updates)
     return TargetResponse(**target)
 
 
@@ -85,10 +88,10 @@ async def delete_target(
     target_id: int,
     authorization: Optional[str] = Header(None),
 ):
-    user = _get_user(authorization)
+    uid = _get_user_id(authorization)
     existing = repo.get_target(target_id)
-    if not existing or existing["user_id"] != user["user_id"]:
+    if not existing:
         raise HTTPException(status_code=404, detail="Target not found")
     repo.delete_target(target_id)
-    repo.log_event(user["user_id"], target_id, "target.deleted")
+    repo.log_event(uid, target_id, "target.deleted")
     return {"success": True}

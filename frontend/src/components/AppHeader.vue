@@ -18,6 +18,9 @@ const authStore = useAuthStore()
         <span class="user-name">{{ authStore.user?.user_name || 'User' }}</span>
         <button class="btn btn-ghost btn-sm" @click="authStore.logout">Logout</button>
       </div>
+      <div v-else class="user-info">
+        <button class="btn btn-sm btn-primary" @click="authStore.login">Sign In</button>
+      </div>
     </div>
   </header>
 </template>
