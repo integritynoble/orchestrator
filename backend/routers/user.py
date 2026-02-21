@@ -1,6 +1,6 @@
-"""User/auth routes — mirrors CompareGPT pattern."""
+"""User/auth routes — exact CompareGPT pattern."""
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, HTTPException
 from typing import Optional
 
 from backend.db.schemas import ValidateRequest, ValidateResponse, LogoutResponse
@@ -14,17 +14,27 @@ async def validate(
     request: ValidateRequest,
     authorization: Optional[str] = Header(None),
 ):
+    """
+    Unified validation endpoint — two modes:
+    Mode 1: SSO Token Exchange  → body: { sso_token: "..." }
+    Mode 2: Access Token Validate → header: Authorization: Bearer <token>
+    """
     if request.sso_token:
-        result = await auth_service.exchange_sso_token(request.sso_token)
-        return ValidateResponse(**result)
+        return await auth_service.exchange_sso_token(request.sso_token)
 
     if authorization and authorization.startswith("Bearer "):
-        result = await auth_service.validate_access_token(authorization)
-        return ValidateResponse(**result)
+        return await auth_service.validate_access_token(authorization)
 
-    return ValidateResponse(success=False, valid=False, message="Missing credentials")
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "error": "missing_credentials",
+            "message": "Either sso_token or Authorization header is required",
+            "require_reauth": True,
+        },
+    )
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout():
-    return LogoutResponse(success=True)
+async def logout(authorization: Optional[str] = Header(None)):
+    return await auth_service.logout_user(authorization)

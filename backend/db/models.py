@@ -12,7 +12,7 @@ from backend.core.config import settings
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=settings.DEBUG,
+    echo=False,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -29,6 +29,8 @@ class UserModel(Base):
     user_name = Column(String, nullable=True)
     email = Column(String, nullable=True)
     role = Column(String, default="user")
+    credit = Column(Integer, nullable=True)
+    token = Column(Integer, nullable=True)
     sso_token = Column(String, nullable=True)
     api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=now)
@@ -44,9 +46,9 @@ class TargetModel(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     domain = Column(String, nullable=True)
-    maturity_level = Column(Integer, default=0)  # L0-L5
-    status = Column(String, default="active")  # active, paused, completed, archived
-    priority = Column(String, default="medium")  # critical, high, medium, low
+    maturity_level = Column(Integer, default=0)
+    status = Column(String, default="active")
+    priority = Column(String, default="medium")
     benchmark_definition = Column(Text, nullable=True)
     success_criteria = Column(Text, nullable=True)
     current_score = Column(Float, nullable=True)
@@ -58,6 +60,7 @@ class TargetModel(Base):
 
     benchmarks = relationship("BenchmarkModel", back_populates="target", cascade="all, delete-orphan")
     resources = relationship("ResourceModel", back_populates="target", cascade="all, delete-orphan")
+    benchmark_history = relationship("BenchmarkHistoryModel", back_populates="target", cascade="all, delete-orphan")
 
 
 class BenchmarkModel(Base):
@@ -67,7 +70,7 @@ class BenchmarkModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     target_id = Column(Integer, ForeignKey("targets.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
-    metric_type = Column(String, default="score")  # score, accuracy, latency, cost
+    metric_type = Column(String, default="score")
     current_value = Column(Float, nullable=True)
     target_value = Column(Float, nullable=True)
     unit = Column(String, nullable=True)
@@ -76,23 +79,38 @@ class BenchmarkModel(Base):
     target = relationship("TargetModel", back_populates="benchmarks")
 
 
+class BenchmarkHistoryModel(Base):
+    """Time-series benchmark value history."""
+    __tablename__ = "benchmark_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    target_id = Column(Integer, ForeignKey("targets.id", ondelete="CASCADE"), nullable=False)
+    benchmark_id = Column(Integer, ForeignKey("benchmarks.id", ondelete="CASCADE"), nullable=False)
+    value = Column(Float, nullable=False)
+    recorded_at = Column(DateTime, default=now)
+
+    target = relationship("TargetModel", back_populates="benchmark_history")
+
+
 class ResourceModel(Base):
     """Resource allocation for a target."""
     __tablename__ = "resources"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     target_id = Column(Integer, ForeignKey("targets.id", ondelete="CASCADE"), nullable=False)
-    resource_type = Column(String, nullable=False)  # compute, budget, tokens, time
+    resource_type = Column(String, nullable=False)
     allocated = Column(Float, default=0)
     consumed = Column(Float, default=0)
     unit = Column(String, nullable=True)
+    alert_at = Column(Float, nullable=True)
+    hard_limit = Column(Float, nullable=True)
     updated_at = Column(DateTime, default=now, onupdate=now)
 
     target = relationship("TargetModel", back_populates="resources")
 
 
 class AuditEventModel(Base):
-    """Immutable audit log."""
+    """Immutable audit log with chain-hashing."""
     __tablename__ = "audit_events"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -100,4 +118,6 @@ class AuditEventModel(Base):
     target_id = Column(Integer, nullable=True)
     event_type = Column(String, nullable=False)
     details = Column(JSON, nullable=True)
+    prev_hash = Column(String, nullable=True)
+    event_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=now)

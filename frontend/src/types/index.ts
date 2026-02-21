@@ -5,9 +5,15 @@ export interface UserInfo {
   role: string | null
 }
 
+export interface UserBalance {
+  credit: number | null
+  token: number | null
+}
+
 export interface User {
   valid: boolean
   user_info: UserInfo
+  balance?: UserBalance
   api_key?: string
 }
 

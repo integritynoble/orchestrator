@@ -15,7 +15,11 @@ const authStore = useAuthStore()
     </div>
     <div class="header-right">
       <div v-if="authStore.isLoggedIn" class="user-info">
-        <span class="user-name">{{ authStore.user?.user_name || 'User' }}</span>
+        <span v-if="authStore.credit !== null" class="balance-badge">
+          {{ authStore.credit }} credits
+        </span>
+        <span class="user-name">{{ authStore.userName }}</span>
+        <span class="user-role">{{ authStore.userRole }}</span>
         <button class="btn btn-ghost btn-sm" @click="authStore.logout">Logout</button>
       </div>
       <div v-else class="user-info">
@@ -60,5 +64,22 @@ const authStore = useAuthStore()
 }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .user-info { display: flex; align-items: center; gap: 10px; }
-.user-name { font-size: 13px; color: var(--color-text-secondary); }
+.user-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+.user-role {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+}
+.balance-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
 </style>

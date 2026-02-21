@@ -1,6 +1,6 @@
 /**
  * API service — mirrors CompareGPT pattern.
- * Auto-injects Bearer token, handles errors.
+ * Auto-injects Bearer token, handles 401 with require_reauth.
  */
 
 const API_BASE = '/api'
@@ -19,6 +19,12 @@ async function request<T>(method: string, endpoint: string, body?: unknown): Pro
   const res = await fetch(`${API_BASE}${endpoint}`, opts)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
+    if (res.status === 401 && err.require_reauth) {
+      localStorage.removeItem(ACCESS_TOKEN_KEY)
+      localStorage.removeItem('user_profile')
+      window.location.href = '/'
+      throw new Error('Session expired')
+    }
     throw new Error(err.detail || res.statusText)
   }
   return res.json()
