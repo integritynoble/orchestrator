@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTargetingStore } from '../stores/targeting'
-import { useAuthStore } from '../stores/auth'
 import AppHeader from '../components/AppHeader.vue'
 import MetricsPanel from '../components/MetricsPanel.vue'
 import MaturityPipeline from '../components/MaturityPipeline.vue'
@@ -12,7 +11,6 @@ import type { TargetCreatePayload } from '../types'
 
 const router = useRouter()
 const store = useTargetingStore()
-const authStore = useAuthStore()
 const showCreate = ref(false)
 
 onMounted(async () => {
@@ -65,7 +63,7 @@ async function handleCreate(payload: TargetCreatePayload) {
               <option value="completed">Completed</option>
               <option value="archived">Archived</option>
             </select>
-            <button v-if="authStore.isLoggedIn" class="btn btn-primary" @click="showCreate = true">
+            <button class="btn btn-primary" @click="showCreate = true">
               + New Target
             </button>
           </div>
@@ -79,11 +77,8 @@ async function handleCreate(payload: TargetCreatePayload) {
           <p class="text-sm text-secondary">
             Create your first intelligence target to start the SolveEverything maturity pipeline.
           </p>
-          <button v-if="authStore.isLoggedIn" class="btn btn-primary mt-4" @click="showCreate = true">
+          <button class="btn btn-primary mt-4" @click="showCreate = true">
             + Create First Target
-          </button>
-          <button v-else class="btn btn-primary mt-4" @click="authStore.login">
-            Sign In to Get Started
           </button>
         </div>
 
@@ -94,13 +89,6 @@ async function handleCreate(payload: TargetCreatePayload) {
             :target="target"
             @select="goToTarget"
           />
-        </div>
-
-        <!-- Sign-in prompt for unauthenticated users -->
-        <div v-if="!authStore.isLoggedIn && store.targets.length > 0" class="auth-prompt">
-          <button class="btn btn-primary" @click="authStore.login">
-            Sign In to manage your own targets
-          </button>
         </div>
       </div>
     </main>
@@ -150,12 +138,5 @@ async function handleCreate(payload: TargetCreatePayload) {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 6px;
-}
-
-.auth-prompt {
-  text-align: center;
-  padding: 20px;
-  margin-top: 24px;
-  border-top: 1px solid var(--color-border);
 }
 </style>

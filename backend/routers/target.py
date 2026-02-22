@@ -11,7 +11,7 @@ from backend.db.schemas import (
     AuditListResponse,
 )
 from backend.db.repo import repo
-from backend.services.auth_service import get_current_user_id, get_optional_user_id
+from backend.services.auth_service import get_optional_user_id
 
 router = APIRouter(prefix="/api/targets", tags=["Targets"])
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/targets", tags=["Targets"])
 # ── Target CRUD ──────────────────────────────────────────────────────
 
 @router.post("", response_model=TargetResponse, status_code=201)
-async def create_target(body: TargetCreate, user_id: int = Depends(get_current_user_id)):
+async def create_target(body: TargetCreate, user_id: int = Depends(get_optional_user_id)):
     data = body.model_dump()
     target = repo.create_target(user_id, data)
     repo.log_event(user_id, target["id"], "target.created", {"title": target["title"]})
@@ -58,7 +58,7 @@ async def get_target(target_id: int, user_id: int = Depends(get_optional_user_id
 
 
 @router.put("/{target_id}", response_model=TargetResponse)
-async def update_target(target_id: int, body: TargetUpdate, user_id: int = Depends(get_current_user_id)):
+async def update_target(target_id: int, body: TargetUpdate, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -69,7 +69,7 @@ async def update_target(target_id: int, body: TargetUpdate, user_id: int = Depen
 
 
 @router.delete("/{target_id}")
-async def delete_target(target_id: int, user_id: int = Depends(get_current_user_id)):
+async def delete_target(target_id: int, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -81,7 +81,7 @@ async def delete_target(target_id: int, user_id: int = Depends(get_current_user_
 # ── Maturity Advancement ─────────────────────────────────────────────
 
 @router.get("/{target_id}/advance/check")
-async def check_advance(target_id: int, user_id: int = Depends(get_current_user_id)):
+async def check_advance(target_id: int, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -89,7 +89,7 @@ async def check_advance(target_id: int, user_id: int = Depends(get_current_user_
 
 
 @router.post("/{target_id}/advance", response_model=MaturityTransitionResponse)
-async def advance_maturity(target_id: int, user_id: int = Depends(get_current_user_id)):
+async def advance_maturity(target_id: int, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -110,7 +110,7 @@ async def advance_maturity(target_id: int, user_id: int = Depends(get_current_us
 # ── Benchmarks ───────────────────────────────────────────────────────
 
 @router.post("/{target_id}/benchmarks", response_model=BenchmarkResponse, status_code=201)
-async def add_benchmark(target_id: int, body: BenchmarkCreate, user_id: int = Depends(get_current_user_id)):
+async def add_benchmark(target_id: int, body: BenchmarkCreate, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -120,7 +120,7 @@ async def add_benchmark(target_id: int, body: BenchmarkCreate, user_id: int = De
 
 
 @router.put("/{target_id}/benchmarks/{benchmark_id}", response_model=BenchmarkResponse)
-async def update_benchmark(target_id: int, benchmark_id: int, body: BenchmarkUpdate, user_id: int = Depends(get_current_user_id)):
+async def update_benchmark(target_id: int, benchmark_id: int, body: BenchmarkUpdate, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -146,7 +146,7 @@ async def benchmark_history(
 # ── Resources ────────────────────────────────────────────────────────
 
 @router.post("/{target_id}/resources", response_model=ResourceResponse, status_code=201)
-async def add_resource(target_id: int, body: ResourceCreate, user_id: int = Depends(get_current_user_id)):
+async def add_resource(target_id: int, body: ResourceCreate, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -156,7 +156,7 @@ async def add_resource(target_id: int, body: ResourceCreate, user_id: int = Depe
 
 
 @router.put("/{target_id}/resources/{resource_id}")
-async def update_resource(target_id: int, resource_id: int, body: ResourceUpdate, user_id: int = Depends(get_current_user_id)):
+async def update_resource(target_id: int, resource_id: int, body: ResourceUpdate, user_id: int = Depends(get_optional_user_id)):
     existing = repo.get_target(target_id)
     if not existing or existing["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
