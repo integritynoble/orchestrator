@@ -9,19 +9,16 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'dashboard',
     component: DashboardView,
-    meta: { requiresAuth: true },
   },
   {
     path: '/target/:id',
     name: 'target-detail',
     component: () => import('../views/TargetDetailView.vue'),
-    meta: { requiresAuth: true },
   },
   {
     path: '/sso/callback',
     name: 'sso-callback',
     component: () => import('../views/SSOCallbackView.vue'),
-    meta: { requiresAuth: false },
   },
 ]
 
@@ -38,11 +35,6 @@ router.beforeEach(async (to) => {
   if (!authInitialized) {
     await authStore.initialize()
     authInitialized = true
-  }
-
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-    authStore.login()
-    return false
   }
 
   return true

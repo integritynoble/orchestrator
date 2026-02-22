@@ -184,8 +184,10 @@ class AuthService:
 
 auth_service = AuthService()
 
+DEMO_USER_ID = 999
 
-# ── FastAPI Dependency ──────────────────────────────────────────────
+
+# ── FastAPI Dependencies ──────────────────────────────────────────
 async def get_current_user_id(authorization: Optional[str] = Header(None)) -> int:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
@@ -211,3 +213,12 @@ async def get_current_user_id(authorization: Optional[str] = Header(None)) -> in
         )
 
     return user_id
+
+
+async def get_optional_user_id(authorization: Optional[str] = Header(None)) -> int:
+    """Returns authenticated user_id or DEMO_USER_ID for public read access."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return DEMO_USER_ID
+    access_token = authorization.replace("Bearer ", "")
+    user_id = token_manager.verify_access_token(access_token)
+    return user_id or DEMO_USER_ID

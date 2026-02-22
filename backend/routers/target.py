@@ -11,7 +11,7 @@ from backend.db.schemas import (
     AuditListResponse,
 )
 from backend.db.repo import repo
-from backend.services.auth_service import get_current_user_id
+from backend.services.auth_service import get_current_user_id, get_optional_user_id
 
 router = APIRouter(prefix="/api/targets", tags=["Targets"])
 
@@ -28,7 +28,7 @@ async def create_target(body: TargetCreate, user_id: int = Depends(get_current_u
 
 @router.get("", response_model=TargetListResponse)
 async def list_targets(
-    user_id: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_optional_user_id),
     status: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -38,19 +38,19 @@ async def list_targets(
 
 
 @router.get("/maturity-summary")
-async def maturity_summary(user_id: int = Depends(get_current_user_id)):
+async def maturity_summary(user_id: int = Depends(get_optional_user_id)):
     summary = repo.get_maturity_summary(user_id)
     return {"success": True, "summary": summary}
 
 
 @router.get("/pipeline", response_model=PipelineSummaryResponse)
-async def pipeline_summary(user_id: int = Depends(get_current_user_id)):
+async def pipeline_summary(user_id: int = Depends(get_optional_user_id)):
     data = repo.get_pipeline_summary(user_id)
     return PipelineSummaryResponse(**data)
 
 
 @router.get("/{target_id}", response_model=TargetResponse)
-async def get_target(target_id: int, user_id: int = Depends(get_current_user_id)):
+async def get_target(target_id: int, user_id: int = Depends(get_optional_user_id)):
     target = repo.get_target(target_id)
     if not target or target["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Target not found")
@@ -133,7 +133,7 @@ async def update_benchmark(target_id: int, benchmark_id: int, body: BenchmarkUpd
 
 @router.get("/{target_id}/benchmarks/history")
 async def benchmark_history(
-    target_id: int, user_id: int = Depends(get_current_user_id),
+    target_id: int, user_id: int = Depends(get_optional_user_id),
     benchmark_id: Optional[int] = Query(None), limit: int = Query(100, ge=1, le=500),
 ):
     existing = repo.get_target(target_id)
@@ -175,7 +175,7 @@ async def update_resource(target_id: int, resource_id: int, body: ResourceUpdate
 
 @router.get("/{target_id}/audit", response_model=AuditListResponse)
 async def target_audit(
-    target_id: int, user_id: int = Depends(get_current_user_id),
+    target_id: int, user_id: int = Depends(get_optional_user_id),
     event_type: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0),
 ):
